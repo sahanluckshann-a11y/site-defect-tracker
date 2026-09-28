@@ -28,6 +28,10 @@
         .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f3f4f6; padding-top: 12px; margin-top: 4px; gap: 8px; }
         .meta-text { display: flex; flex-direction: column; font-size: 11px; color: #6b7280; }
         .status-select { width: auto; font-size: 0.75rem; background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 4px 8px; border-radius: 4px; }
+        .actions { display: flex; gap: 6px; align-items: center; }
+        .delete-btn { font-size: 0.75rem; background-color: #fff; color: #b91c1c; border: 1px solid #fca5a5; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .delete-btn:hover { background-color: #fef2f2; }
+        .delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .error-log { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 0.75rem; margin-top: 10px; display: none; word-break: break-word; }
         .empty { text-align: center; color: #6b7280; font-size: 0.875rem; padding: 16px 0; }
     </style>
@@ -228,6 +232,55 @@
         }
         window.updateStatus = updateStatus;
 
+        // ---- Delete a resolved defect (and its photo) ----
+        function parseStorageUrl(url) {
+            const marker = '/storage/v1/object/public/';
+            const i = url ? url.indexOf(marker) : -1;
+            if (i === -1) return null;
+            const rest = url.substring(i + marker.length);
+            const slash = rest.indexOf('/');
+            if (slash === -1) return null;
+            return {
+                bucket: decodeURIComponent(rest.substring(0, slash)),
+                path: decodeURIComponent(rest.substring(slash + 1))
+            };
+        }
+
+        async function deleteDefect(id, imageUrl, button) {
+            if (!confirm('Delete this resolved defect and its photo? This cannot be undone.')) return;
+            clearError();
+            button.disabled = true;
+            try {
+                const { data, error } = await supabaseClient
+                    .from(TABLE_NAME)
+                    .delete()
+                    .eq('id', id)
+                    .eq('status', 'Resolved')
+                    .select();
+
+                if (error) throw new Error('Delete Error: ' + error.message);
+                if (!data || data.length === 0) {
+                    throw new Error('Delete Error: nothing was deleted. Check that the delete policy was added in Supabase.');
+                }
+
+                // Remove the photo too (best effort)
+                const file = parseStorageUrl(imageUrl);
+                if (file) {
+                    await supabaseClient.storage.from(file.bucket).remove([file.path]);
+                }
+                await loadDefects();
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+                button.disabled = false;
+            }
+        }
+
+        defectList.addEventListener('click', function (e) {
+            const btn = e.target.closest('.delete-btn');
+            if (btn) deleteDefect(btn.dataset.id, btn.dataset.url, btn);
+        });
+
         // ---- Load and draw the dashboard ----
         async function loadDefects() {
             if (!supabaseClient) return;
@@ -265,11 +318,16 @@
                                     '<span>📍 ' + escapeHtml(d.location) + '</span>' +
                                     (date ? '<span>' + escapeHtml(date) + '</span>' : '') +
                                 '</div>' +
+                                '<div class="actions">' +
                                 '<select class="status-select" onchange="updateStatus(\'' + escapeHtml(d.id) + '\', this.value)">' +
                                     ['Pending', 'In Progress', 'Resolved'].map(function (s) {
                                         return '<option value="' + s + '"' + (s === status ? ' selected' : '') + '>' + s + '</option>';
                                     }).join('') +
                                 '</select>' +
+                                (status === 'Resolved'
+                                    ? '<button type="button" class="delete-btn" data-id="' + escapeHtml(d.id) + '" data-url="' + escapeHtml(d.image_url || '') + '">🗑 Delete</button>'
+                                    : '') +
+                                '</div>' +
                             '</div>' +
                         '</div></div>';
                 }).join('');
