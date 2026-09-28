@@ -3,61 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Defect Tracker</title>
-    <!-- EMBEDDED CSS: Stable layout styling -->
+    <title>Site Defect Monitor</title>
     <style>
-        body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding-bottom: 40px; min-height: 100vh; }
+        body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding-bottom: 40px; min-height: 100vh; }
         header { background-color: #dc2626; color: white; padding: 16px; position: sticky; top: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; text-align: center; }
         header h1 { margin: 0; font-size: 1.25rem; font-weight: bold; }
         main { max-width: 448px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 24px; }
         section { background-color: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        h2 { font-size: 1.125rem; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: #1f2937; display: flex; justify-content: space-between; align-items: center; }
+        h2 { font-size: 1.125rem; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: #1f2937; }
         .form-group { margin-bottom: 16px; }
         label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 4px; }
-        input[type="text"], textarea, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; box-sizing: border-box; }
-        .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 12px; }
-        .action-btn { width: 100%; background-color: #dc2626; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-top: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); -webkit-appearance: none; }
-        .action-btn:disabled { background-color: #f87171; }
+        input[type="text"], textarea, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; box-sizing: border-box; font-family: inherit; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .action-btn { width: 100%; background-color: #dc2626; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-top: 16px; -webkit-appearance: none; }
+        .action-btn:disabled { background-color: #f87171; cursor: not-allowed; }
         .card { background-color: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card img { width: 100%; height: 192px; object-fit: cover; background-color: #f3f4f6; border: none; display: block; }
-        .card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; }
-        .badge { position: absolute; top: 12px; right: 12px; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 5; }
+        .card img { width: 100%; height: 192px; object-fit: cover; background-color: #f3f4f6; display: block; }
+        .card-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+        .card-desc { margin: 0; font-size: 0.9rem; color: #1f2937; padding-right: 90px; word-break: break-word; }
+        .badge { position: absolute; top: 12px; right: 12px; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid; }
         .badge-pending { background-color: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
         .badge-progress { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
         .badge-resolved { background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; }
-        .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f3f4f6; padding-top: 12px; }
+        .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f3f4f6; padding-top: 12px; margin-top: 4px; gap: 8px; }
         .meta-text { display: flex; flex-direction: column; font-size: 11px; color: #6b7280; }
-        .status-select { font-size: 0.75rem; background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 4px 8px; border-radius: 4px; }
-        .error-log { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 0.75rem; margin-top: 10px; display: none; word-break: break-all; }
+        .status-select { width: auto; font-size: 0.75rem; background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 4px 8px; border-radius: 4px; }
+        .error-log { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 0.75rem; margin-top: 10px; display: none; word-break: break-word; }
+        .empty { text-align: center; color: #6b7280; font-size: 0.875rem; padding: 16px 0; }
     </style>
-    <!-- GLOBAL PRODUCTION BACKEND: Stable CDN JS channel -->
-    <script src="https://unpkg.com"></script>
+    <!-- Supabase JS library (this is the line that was broken before) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 font-sans min-h-screen pb-10">
+<body>
 
-    <!-- Header -->
     <header>
         <h1>🏗️ Site Defect Monitor</h1>
     </header>
 
     <main>
-        <!-- Report Form -->
         <section>
             <h2>Log New Defect</h2>
-            <div class="space-y-4">
+            <div>
                 <div class="form-group">
-                    <label>Capture/Upload Image</label>
-                    <input type="file" id="imageInput" accept="image/*" required>
+                    <label for="imageInput">Capture/Upload Image</label>
+                    <input type="file" id="imageInput" accept="image/*">
                 </div>
-                
+
                 <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="descriptionInput" rows="2" placeholder="What is the defect?" required></textarea>
+                    <label for="descriptionInput">Description</label>
+                    <textarea id="descriptionInput" rows="2" placeholder="What is the defect?"></textarea>
                 </div>
 
                 <div class="grid">
                     <div>
-                        <label>Initial Status</label>
+                        <label for="statusInput">Initial Status</label>
                         <select id="statusInput">
                             <option value="Pending">🔴 Pending</option>
                             <option value="In Progress">🟡 In Progress</option>
@@ -65,8 +64,8 @@
                         </select>
                     </div>
                     <div>
-                        <label>Location / Area</label>
-                        <input type="text" id="locationInput" placeholder="e.g., Block B, Room 4" required>
+                        <label for="locationInput">Location / Area</label>
+                        <input type="text" id="locationInput" placeholder="e.g., Block B, Room 4">
                     </div>
                 </div>
 
@@ -75,37 +74,46 @@
             </div>
         </section>
 
-        <!-- Live Feed Section -->
         <section>
-            <h2>
-                <span>Active Defects</span>
-            </h2>
+            <h2>Active Defects</h2>
             <div id="defectList">
-                <p style="text-align: center; color: #6b7280; font-size: 0.875rem; padding: 16px 0;">Loading live dashboard feed...</p>
+                <p class="empty">Loading live dashboard feed...</p>
             </div>
         </section>
     </main>
 
     <script>
         // ==========================================
-        // 🔑 BAKED URL SETUP (URL IS PURE AND CORRECT)
+        // SETTINGS - URL must end in .supabase.co (no /rest/v1/)
         // ==========================================
-        const SUPABASE_URL = 'https://supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_UHtKtwKM73rVEvqnWU7Ejg_6H4Hz_sl'; 
+        const SUPABASE_URL = 'https://lsamqbrmuwzzrmxbnblz.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_UHtKtwKM73rVEvqnWU7Ejg_6H4Hz_sl';
+        const TABLE_NAME = 'defects';
+        // Storage bucket names to try, in order. Put your exact bucket name first.
+        const BUCKET_NAMES = ['defect-images', 'Defect images'];
         // ==========================================
 
         const submitBtn = document.getElementById('submitBtn');
-        const locationInput = document.getElementById('locationInput');
         const defectList = document.getElementById('defectList');
         const errorTerminal = document.getElementById('errorTerminal');
 
-        let supabaseClient;
-        
-        try {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch (initError) {
-            errorTerminal.style.display = "block";
-            errorTerminal.innerText = "Initialization Error: " + initError.message;
+        function showError(message) {
+            errorTerminal.style.display = 'block';
+            errorTerminal.innerText = message;
+        }
+
+        function clearError() {
+            errorTerminal.style.display = 'none';
+            errorTerminal.innerText = '';
+        }
+
+        function escapeHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         function getBadgeStyle(status) {
@@ -114,75 +122,166 @@
             return 'badge-pending';
         }
 
-        // 1. Submit Click Handler
+        // ---- Connect to Supabase ----
+        let supabaseClient = null;
+        if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+            showError('Could not load the Supabase library. Check your internet connection or the <script> line in the head.');
+            defectList.innerHTML = '<p class="empty">Cannot connect to the database.</p>';
+        } else {
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } catch (initError) {
+                showError('Initialization Error: ' + initError.message);
+            }
+        }
+
+        // ---- Upload image, return its public URL ----
+        async function uploadImage(file) {
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const fileName = Date.now() + '_' + safeName;
+            let lastError = null;
+
+            for (const bucket of BUCKET_NAMES) {
+                const { error } = await supabaseClient.storage
+                    .from(bucket)
+                    .upload(fileName, file, { contentType: file.type || 'image/jpeg' });
+
+                if (!error) {
+                    const { data } = supabaseClient.storage.from(bucket).getPublicUrl(fileName);
+                    return data.publicUrl;
+                }
+                lastError = error;
+            }
+            throw new Error('Image Upload Error: ' + (lastError ? lastError.message : 'unknown error'));
+        }
+
+        // ---- Submit ----
         submitBtn.addEventListener('click', async () => {
-            errorTerminal.style.display = "none";
-            errorTerminal.innerText = "";
+            clearError();
+            if (!supabaseClient) { showError('Not connected to Supabase.'); return; }
 
             const fileInput = document.getElementById('imageInput');
-            const description = document.getElementById('descriptionInput').value;
+            const description = document.getElementById('descriptionInput').value.trim();
             const status = document.getElementById('statusInput').value;
-            const location = locationInput.value;
+            const location = document.getElementById('locationInput').value.trim();
 
-            // Input Validation check
             if (!fileInput.files || fileInput.files.length === 0 || !description || !location) {
-                alert("Please fill out all fields and select an image file first.");
+                alert('Please fill out all fields and select an image file first.');
                 return;
             }
 
-            // FIXED: Target direct index selector [0] explicitly
             const file = fileInput.files[0];
-
             submitBtn.disabled = true;
-            submitBtn.innerText = "Uploading...";
+            submitBtn.innerText = 'Uploading...';
 
             try {
-                const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-                
-                // Attempt storage insert paths (Supports both casing patterns)
-                let uploadResult = await supabaseClient.storage.from('defect-images').upload(fileName, file);
-                
-                if (uploadResult.error) {
-                    uploadResult = await supabaseClient.storage.from('Defect images').upload(fileName, file);
-                }
-
-                if (uploadResult.error) throw new Error("Image Upload Error: " + uploadResult.error.message);
-
-                let urlData = supabaseClient.storage.from('defect-images').getPublicUrl(fileName).data;
-                if (!urlData || !urlData.publicUrl || urlData.publicUrl.includes('undefined')) {
-                    urlData = supabaseClient.storage.from('Defect images').getPublicUrl(fileName).data;
-                }
-                const imageUrl = urlData.publicUrl;
+                const imageUrl = await uploadImage(file);
 
                 const { error: insertError } = await supabaseClient
-                    .from('defects')
+                    .from(TABLE_NAME)
                     .insert([{ description, location, image_url: imageUrl, status }]);
 
-                if (insertError) throw new Error("Database Write Error: " + insertError.message);
+                if (insertError) throw new Error('Database Write Error: ' + insertError.message);
 
-                // Reset page fields cleanly on success
-                fileInput.value = "";
-                document.getElementById('descriptionInput').value = "";
-                locationInput.value = "";
-                
-                alert("Defect logged successfully!");
-                loadDefects();
+                fileInput.value = '';
+                document.getElementById('descriptionInput').value = '';
+                document.getElementById('locationInput').value = '';
+                document.getElementById('statusInput').value = 'Pending';
+
+                await loadDefects();
+                alert('Defect logged successfully!');
             } catch (err) {
                 console.error(err);
-                errorTerminal.style.display = "block";
-                errorTerminal.innerText = err.message;
+                showError(err.message);
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerText = "Submit Defect";
+                submitBtn.innerText = 'Submit Defect';
             }
         });
 
+        // ---- Change status ----
         async function updateStatus(id, newStatus) {
+            clearError();
             try {
                 const { error } = await supabaseClient
-                    .from('defects')
+                    .from(TABLE_NAME)
                     .update({ status: newStatus })
                     .eq('id', id);
-                
-                if (error) throw error;
+                if (error) throw new Error('Status Update Error: ' + error.message);
+                await loadDefects();
             } catch (err) {
+                console.error(err);
+                showError(err.message);
+                loadDefects();
+            }
+        }
+        window.updateStatus = updateStatus;
+
+        // ---- Load and draw the dashboard ----
+        async function loadDefects() {
+            if (!supabaseClient) return;
+            try {
+                let result = await supabaseClient
+                    .from(TABLE_NAME)
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                // If there is no created_at column, load without sorting
+                if (result.error) {
+                    result = await supabaseClient.from(TABLE_NAME).select('*');
+                }
+                if (result.error) throw new Error('Load Error: ' + result.error.message);
+
+                const rows = result.data || [];
+                if (rows.length === 0) {
+                    defectList.innerHTML = '<p class="empty">No defects logged yet.</p>';
+                    return;
+                }
+
+                defectList.innerHTML = rows.map(function (d) {
+                    const status = d.status || 'Pending';
+                    const date = d.created_at ? new Date(d.created_at).toLocaleString() : '';
+                    const img = d.image_url
+                        ? '<img src="' + escapeHtml(d.image_url) + '" alt="Defect photo" loading="lazy">'
+                        : '';
+                    return '' +
+                        '<div class="card">' + img +
+                        '<div class="card-body">' +
+                            '<span class="badge ' + getBadgeStyle(status) + '">' + escapeHtml(status) + '</span>' +
+                            '<p class="card-desc">' + escapeHtml(d.description) + '</p>' +
+                            '<div class="card-footer">' +
+                                '<div class="meta-text">' +
+                                    '<span>📍 ' + escapeHtml(d.location) + '</span>' +
+                                    (date ? '<span>' + escapeHtml(date) + '</span>' : '') +
+                                '</div>' +
+                                '<select class="status-select" onchange="updateStatus(\'' + escapeHtml(d.id) + '\', this.value)">' +
+                                    ['Pending', 'In Progress', 'Resolved'].map(function (s) {
+                                        return '<option value="' + s + '"' + (s === status ? ' selected' : '') + '>' + s + '</option>';
+                                    }).join('') +
+                                '</select>' +
+                            '</div>' +
+                        '</div></div>';
+                }).join('');
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+                defectList.innerHTML = '<p class="empty">Could not load defects. See the error above.</p>';
+            }
+        }
+
+        // ---- Live updates ----
+        if (supabaseClient) {
+            loadDefects();
+
+            // Instant updates (needs Realtime switched on for the table)
+            supabaseClient
+                .channel('defects-feed')
+                .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, function () { loadDefects(); })
+                .subscribe();
+
+            // Backup: refresh every 20 seconds in case Realtime is off
+            setInterval(loadDefects, 20000);
+        }
+    </script>
+</body>
+</html>
