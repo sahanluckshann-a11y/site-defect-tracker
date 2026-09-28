@@ -129,7 +129,18 @@
             defectList.innerHTML = '<p class="empty">Cannot connect to the database.</p>';
         } else {
             try {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    global: {
+                        // Converts Headers objects to plain objects (fixes the DataCloneError in sandboxed previews)
+                        fetch: function (url, options) {
+                            const opts = Object.assign({}, options || {});
+                            if (typeof Headers !== 'undefined' && opts.headers instanceof Headers) {
+                                opts.headers = Object.fromEntries(opts.headers.entries());
+                            }
+                            return fetch(url, opts);
+                        }
+                    }
+                });
             } catch (initError) {
                 showError('Initialization Error: ' + initError.message);
             }
