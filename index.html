@@ -7,7 +7,7 @@
     <!-- EMBEDDED CSS: Bulletproof styling that doesn't rely on external Tailwind CDN links -->
     <style>
         body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding-bottom: 40px; min-height: 100vh; }
-        header { background-color: #dc2626; color: white; padding: 16px; position: sticky; top: 0; shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; text-align: center; }
+        header { background-color: #dc2626; color: white; padding: 16px; position: sticky; top: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; text-align: center; }
         header h1 { margin: 0; font-size: 1.25rem; font-weight: bold; }
         main { max-width: 448px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 24px; }
         section { background-color: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
@@ -18,14 +18,14 @@
         .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 12px; }
         button[type="submit"] { width: 100%; background-color: #dc2626; color: white; padding: 10px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-top: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         button[type="submit"]:disabled { background-color: #f87171; }
-        .card { background-color: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card { background-color: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-col: column; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card img { width: 100%; height: 192px; object-fit: cover; background-color: #f3f4f6; border: none; display: block; }
         .card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; }
-        .badge { absolute; position: absolute; top: -176px; right: 12px; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid; shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .badge { position: absolute; top: 12px; right: 12px; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 5; }
         .badge-pending { background-color: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
         .badge-progress { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
         .badge-resolved { background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; }
-        .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f3f4f6; pt: 12px; padding-top: 12px; }
+        .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f3f4f6; padding-top: 12px; }
         .meta-text { display: flex; flex-direction: column; font-size: 11px; color: #6b7280; }
         .status-select { font-size: 0.75rem; background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 4px 8px; border-radius: 4px; }
     </style>
@@ -89,14 +89,13 @@
         const SUPABASE_URL = 'https://lsamqbrmuwzzrmxbnblz.supabase.co/rest/v1/';
         const SUPABASE_KEY = 'sb_publishable_UHtKtwKM73rVEvqnWU7Ejg_6H4Hz_sl';
         
-        // Initialize using the unpkg channel engine instance
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // FIXED DECLARATION: Prevents web browsers from crashing on submit
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const form = document.getElementById('defectForm');
         const locationInput = document.getElementById('locationInput');
         const defectList = document.getElementById('defectList');
 
-        // Helper to get color classes based on status string
         function getBadgeStyle(status) {
             if (status === 'In Progress') return 'badge-progress';
             if (status === 'Resolved') return 'badge-resolved';
@@ -105,7 +104,7 @@
 
         // 1. Submit data (Image upload + Form row insertion)
         form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Prevents the browser from instantly reloading the page!
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.innerText = "Uploading...";
@@ -146,7 +145,7 @@
             }
         });
 
-        // 2. Update Status Function (Triggered by changing the dropdown on a card)
+        // 2. Update Status Function
         async function updateStatus(id, newStatus) {
             const { error } = await supabaseClient
                 .from('defects')
@@ -176,12 +175,12 @@
                 defectList.innerHTML = data.map(defect => {
                     const badgeClass = getBadgeStyle(defect.status);
                     return `
-                        <div class="card">
-                            <div style="position: relative;">
-                                <img src="${defect.image_url}" alt="Defect">
+                        <div class="card" style="position: relative;">
+                            <div>
                                 <span class="badge ${badgeClass}">
                                     ${defect.status}
                                 </span>
+                                <img src="${defect.image_url}" alt="Defect">
                             </div>
                             <div class="card-body">
                                 <p style="margin: 0; color: #1f2937; font-size: 0.875rem; font-weight: 500;">${defect.description}</p>
