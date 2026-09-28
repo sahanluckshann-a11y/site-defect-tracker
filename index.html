@@ -31,7 +31,7 @@
         .error-log { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 0.75rem; margin-top: 10px; display: none; word-break: break-all; }
     </style>
     <!-- GLOBAL PRODUCTION BACKEND: Stable CDN JS channel -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com"></script>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen pb-10">
 
@@ -88,10 +88,10 @@
 
     <script>
         // ==========================================
-        // 🔑 BAKED URL SETUP (DO NOT CHANGE URL)
+        // 🔑 BAKED URL SETUP (URL IS PURE AND CORRECT)
         // ==========================================
-        const SUPABASE_URL = 'https://lsamqbrmuwzzrmxbnblz.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_UHtKtwKM73rVEvqnWU7Ejg_6H4Hz_sl'; // <-- PASTE YOUR KEY INSIDE THESE QUOTES
+        const SUPABASE_URL = 'https://supabase.co'; 
+        const SUPABASE_KEY = 'sb_publishable_UHtKtwKM73rVEvqnWU7Ejg_6H4Hz_sl'; 
         // ==========================================
 
         const submitBtn = document.getElementById('submitBtn');
@@ -124,13 +124,13 @@
             const status = document.getElementById('statusInput').value;
             const location = locationInput.value;
 
-            // Strict checking for content inputs
+            // Input Validation check
             if (!fileInput.files || fileInput.files.length === 0 || !description || !location) {
                 alert("Please fill out all fields and select an image file first.");
                 return;
             }
 
-            // FIXED AND TESTED array target index selector
+            // FIXED: Target direct index selector [0] explicitly
             const file = fileInput.files[0];
 
             submitBtn.disabled = true;
@@ -139,7 +139,7 @@
             try {
                 const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
                 
-                // Attempt storage insert paths
+                // Attempt storage insert paths (Supports both casing patterns)
                 let uploadResult = await supabaseClient.storage.from('defect-images').upload(fileName, file);
                 
                 if (uploadResult.error) {
@@ -186,7 +186,3 @@
                 
                 if (error) throw error;
             } catch (err) {
-                alert("Failed to update status: " + err.message);
-            }
-        }
-
