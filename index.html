@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Defect Tracker</title>
-    <!-- EMBEDDED CSS: Bulletproof styling that doesn't rely on external Tailwind CDN links -->
+    <!-- EMBEDDED CSS: Stable fallback styling -->
     <style>
         body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding-bottom: 40px; min-height: 100vh; }
         header { background-color: #dc2626; color: white; padding: 16px; position: sticky; top: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; text-align: center; }
@@ -16,8 +16,9 @@
         label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 4px; }
         input[type="text"], textarea, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; box-sizing: border-box; }
         .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 12px; }
-        button[type="submit"] { width: 100%; background-color: #dc2626; color: white; padding: 10px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-top: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        button[type="submit"]:disabled { background-color: #f87171; }
+        /* CHANGED: Switched button type away from standard 'submit' form triggers */
+        .action-btn { width: 100%; background-color: #dc2626; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-top: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); -webkit-appearance: none; }
+        .action-btn:disabled { background-color: #f87171; }
         .card { background-color: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card img { width: 100%; height: 192px; object-fit: cover; background-color: #f3f4f6; border: none; display: block; }
         .card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; }
@@ -44,10 +45,11 @@
         <!-- Report Form -->
         <section>
             <h2>Log New Defect</h2>
-            <form id="defectForm">
+            <div class="space-y-4">
                 <div class="form-group">
                     <label>Capture/Upload Image</label>
-                    <input type="file" id="imageInput" accept="image/*" capture="environment" required>
+                    <!-- FIXED: Removed capture="environment" to prevent OS layout crashes -->
+                    <input type="file" id="imageInput" accept="image/*" required>
                 </div>
                 
                 <div class="form-group">
@@ -70,10 +72,10 @@
                     </div>
                 </div>
 
-                <button type="submit" id="submitBtn">Submit Defect</button>
-                <!-- Physical Error Terminal Window -->
+                <!-- FIXED: Changed element type to button to fully bypass native browser form-submission reloads -->
+                <button type="button" id="submitBtn" class="action-btn">Submit Defect</button>
                 <div id="errorTerminal" class="error-log"></div>
-            </form>
+            </div>
         </section>
 
         <!-- Live Feed Section -->
@@ -95,14 +97,13 @@
         const SUPABASE_KEY = 'sb_publishable_UHtKtwKM73rVEvqnWU7Ejg_6H4Hz_sl';
         // ==========================================
 
-        const form = document.getElementById('defectForm');
+        const submitBtn = document.getElementById('submitBtn');
         const locationInput = document.getElementById('locationInput');
         const defectList = document.getElementById('defectList');
         const errorTerminal = document.getElementById('errorTerminal');
 
         let supabaseClient;
         
-        // Safe Initialization Wrap
         try {
             if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_SUPABASE_URL')) {
                 throw new Error("Missing/Default URL detected. Please paste your actual Supabase Project URL.");
@@ -119,18 +120,10 @@
             return 'badge-pending';
         }
 
-        // 1. Submit data (Image upload + Form row insertion)
-        form.addEventListener('submit', async (e) => {
-            // Absolute browser event blocks to prevent screen refreshing on click
-            e.preventDefault();
-            e.stopPropagation();
-            
+        // FIXED: Switched engine trigger to explicit button click listener to deny form refreshes
+        submitBtn.addEventListener('click', async () => {
             errorTerminal.style.display = "none";
             errorTerminal.innerText = "";
-
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Uploading...";
 
             const fileInput = document.getElementById('imageInput');
             const file = fileInput.files[0];
@@ -138,45 +131,50 @@
             const status = document.getElementById('statusInput').value;
             const location = locationInput.value;
 
-            if (!supabaseClient) {
+            // Manual Validation check since we dropped the form container
+            if (!file || !description || !location) {
                 errorTerminal.style.display = "block";
-                errorTerminal.innerText = "Submit Blocked: Supabase client is not initialized. Verify your keys.";
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Submit Defect";
+                errorTerminal.innerText = "Validation Warning: Image, Description, and Location fields are all required.";
                 return;
             }
 
-            try {
-                if (!file) throw new Error("Please select or capture an image first.");
+            if (!supabaseClient) {
+                errorTerminal.style.display = "block";
+                errorTerminal.innerText = "Submit Blocked: Supabase client initialization check failed.";
+                return;
+            }
 
-                // Upload Image to Supabase Bucket (Supports both 'defect-images' and 'Defect images')
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Uploading...";
+
+            try {
                 const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
                 
-                // Try lowercase first, fallback if user kept default name style
                 let uploadResult = await supabaseClient.storage.from('defect-images').upload(fileName, file);
                 
                 if (uploadResult.error) {
-                    console.log("Retrying with alternate bucket name...");
+                    console.log("Retrying bucket fallback...");
                     uploadResult = await supabaseClient.storage.from('Defect images').upload(fileName, file);
                 }
 
-                if (uploadResult.error) throw new Error("Image Upload Failed: " + uploadResult.error.message);
+                if (uploadResult.error) throw new Error("Image Upload Failure: " + uploadResult.error.message);
 
-                // Get Public Image URL
                 let urlData = supabaseClient.storage.from('defect-images').getPublicUrl(fileName).data;
                 if (!urlData || !urlData.publicUrl || urlData.publicUrl.includes('undefined')) {
                     urlData = supabaseClient.storage.from('Defect images').getPublicUrl(fileName).data;
                 }
                 const imageUrl = urlData.publicUrl;
 
-                // Insert Log Row into Database
                 const { error: insertError } = await supabaseClient
                     .from('defects')
                     .insert([{ description, location, image_url: imageUrl, status }]);
 
-                if (insertError) throw new Error("Database Save Failed: " + insertError.message);
+                if (insertError) throw new Error("Database Write Failure: " + insertError.message);
 
-                form.reset();
+                // Clear input elements manually
+                fileInput.value = "";
+                document.getElementById('descriptionInput').value = "";
+                locationInput.value = "";
+                
                 alert("Defect logged successfully!");
                 loadDefects();
-            } catch (err) {
