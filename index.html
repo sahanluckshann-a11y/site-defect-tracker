@@ -4,63 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Defect Tracker</title>
-    <!-- STABLE STYLING: Tailwind CSS v3 Play CDN -->
-    <script src="https://tailwindcss.com"></script>
-    <!-- STABLE DATABASE: Supabase JS Library -->
-    <script src="https://jsdelivr.net"></script>
+    <!-- EMBEDDED CSS: Bulletproof styling that doesn't rely on external Tailwind CDN links -->
+    <style>
+        body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding-bottom: 40px; min-height: 100vh; }
+        header { background-color: #dc2626; color: white; padding: 16px; position: sticky; top: 0; shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; text-align: center; }
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: bold; }
+        main { max-width: 448px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 24px; }
+        section { background-color: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        h2 { font-size: 1.125rem; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: #1f2937; display: flex; justify-content: space-between; align-items: center; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 4px; }
+        input[type="text"], textarea, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; box-sizing: border-box; }
+        .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 12px; }
+        button[type="submit"] { width: 100%; background-color: #dc2626; color: white; padding: 10px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-top: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        button[type="submit"]:disabled { background-color: #f87171; }
+        .card { background-color: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card img { width: 100%; height: 192px; object-fit: cover; background-color: #f3f4f6; border: none; display: block; }
+        .card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; }
+        .badge { absolute; position: absolute; top: -176px; right: 12px; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid; shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .badge-pending { background-color: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
+        .badge-progress { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
+        .badge-resolved { background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+        .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f3f4f6; pt: 12px; padding-top: 12px; }
+        .meta-text { display: flex; flex-direction: column; font-size: 11px; color: #6b7280; }
+        .status-select { font-size: 0.75rem; background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 4px 8px; border-radius: 4px; }
+    </style>
+    <!-- GLOBAL PRODUCTION BACKEND: Clean JS delivery channel -->
+    <script src="https://unpkg.com"></script>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen pb-10">
 
     <!-- Header -->
-    <header class="bg-red-600 text-white p-4 sticky top-0 shadow-md z-10">
-        <h1 class="text-xl font-bold text-center">🏗️ Site Defect Monitor</h1>
+    <header>
+        <h1>🏗️ Site Defect Monitor</h1>
     </header>
 
-    <main class="max-w-md mx-auto p-4 space-y-6">
-        
+    <main>
         <!-- Report Form -->
-        <section class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-            <h2 class="text-lg font-semibold mb-3 text-gray-800">Log New Defect</h2>
-            <form id="defectForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Capture/Upload Image</label>
-                    <input type="file" id="imageInput" accept="image/*" capture="environment" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100" required>
+        <section>
+            <h2>Log New Defect</h2>
+            <form id="defectForm">
+                <div class="form-group">
+                    <label>Capture/Upload Image</label>
+                    <input type="file" id="imageInput" accept="image/*" capture="environment" required>
                 </div>
                 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="descriptionInput" rows="2" class="w-full p-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 text-sm" placeholder="What is the defect?" required></textarea>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="descriptionInput" rows="2" placeholder="What is the defect?" required></textarea>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Initial Status</label>
-                        <select id="statusInput" class="w-full p-2 border border-gray-300 rounded-md bg-white text-sm">
+                        <label>Initial Status</label>
+                        <select id="statusInput">
                             <option value="Pending">🔴 Pending</option>
                             <option value="In Progress">🟡 In Progress</option>
                             <option value="Resolved">🟢 Resolved</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Location / Area</label>
-                        <input type="text" id="locationInput" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-red-500 focus:border-red-500" placeholder="e.g., Block B, Room 4" required>
+                        <label>Location / Area</label>
+                        <input type="text" id="locationInput" placeholder="e.g., Block B, Room 4" required>
                     </div>
                 </div>
 
-                <button type="submit" id="submitBtn" class="w-full bg-red-600 text-white py-2.5 rounded-md font-semibold text-sm shadow hover:bg-red-700 transition">
-                    Submit Defect
-                </button>
+                <button type="submit" id="submitBtn">Submit Defect</button>
             </form>
         </section>
 
         <!-- Live Feed Section -->
         <section>
-            <h2 class="text-lg font-semibold mb-3 text-gray-800 flex items-center justify-between">
+            <h2>
                 <span>Active Defects</span>
-                <span class="inline-flex h-2 w-2 rounded-full bg-green-500 animate-ping"></span>
             </h2>
-            <div id="defectList" class="space-y-4">
-                <p class="text-gray-500 text-sm text-center py-4">Loading live dashboard feed...</p>
+            <div id="defectList">
+                <p style="text-align: center; color: #6b7280; font-size: 0.875rem; padding: 16px 0;">Loading live dashboard feed...</p>
             </div>
         </section>
     </main>
@@ -70,18 +89,18 @@
         const SUPABASE_URL = 'https://lsamqbrmuwzzrmxbnblz.supabase.co/rest/v1/';
         const SUPABASE_KEY = 'sb_publishable_UHtKtwKM73rVEvqnWU7Ejg_6H4Hz_sl';
         
-        // Use the global object format for UMD fallback stability
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Initialize using the unpkg channel engine instance
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const form = document.getElementById('defectForm');
         const locationInput = document.getElementById('locationInput');
         const defectList = document.getElementById('defectList');
 
         // Helper to get color classes based on status string
-        function getStatusBadge(status) {
-            if (status === 'In Progress') return 'bg-amber-100 text-amber-800 border-amber-200';
-            if (status === 'Resolved') return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-            return 'bg-rose-100 text-rose-800 border-rose-200'; // Default to Pending
+        function getBadgeStyle(status) {
+            if (status === 'In Progress') return 'badge-progress';
+            if (status === 'Resolved') return 'badge-resolved';
+            return 'badge-pending';
         }
 
         // 1. Submit data (Image upload + Form row insertion)
@@ -99,18 +118,18 @@
             try {
                 // Upload Image to Supabase Bucket
                 const fileName = `${Date.now()}_${file.name}`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
                     .from('defect-images')
                     .upload(fileName, file);
 
                 if (uploadError) throw uploadError;
 
                 // Get Public Image URL
-                const { data: urlData } = supabase.storage.from('defect-images').getPublicUrl(fileName);
+                const { data: urlData } = supabaseClient.storage.from('defect-images').getPublicUrl(fileName);
                 const imageUrl = urlData.publicUrl;
 
                 // Insert Log Row into Database
-                const { error: insertError } = await supabase
+                const { error: insertError } = await supabaseClient
                     .from('defects')
                     .insert([{ description, location, image_url: imageUrl, status }]);
 
@@ -129,7 +148,7 @@
 
         // 2. Update Status Function (Triggered by changing the dropdown on a card)
         async function updateStatus(id, newStatus) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('defects')
                 .update({ status: newStatus })
                 .eq('id', id);
@@ -142,7 +161,7 @@
         // 3. Fetch and Render Defects List
         async function loadDefects() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('defects')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -150,40 +169,23 @@
                 if (error) throw error;
                 
                 if (!data || data.length === 0) {
-                    defectList.innerHTML = `<p class="text-gray-500 text-sm text-center py-4">No defects logged yet. Site is clear!</p>`;
+                    defectList.innerHTML = `<p style="text-align: center; color: #6b7280; font-size: 0.875rem; padding: 16px 0;">No defects logged yet. Site is clear!</p>`;
                     return;
                 }
 
                 defectList.innerHTML = data.map(defect => {
-                    const badgeClass = getStatusBadge(defect.status);
+                    const badgeClass = getBadgeStyle(defect.status);
                     return `
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                            <div class="relative">
-                                <img src="${defect.image_url}" alt="Defect" class="w-full h-48 object-cover bg-gray-100">
-                                <span class="absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full border shadow-sm ${badgeClass}">
+                        <div class="card">
+                            <div style="position: relative;">
+                                <img src="${defect.image_url}" alt="Defect">
+                                <span class="badge ${badgeClass}">
                                     ${defect.status}
                                 </span>
                             </div>
-                            <div class="p-4 space-y-3">
-                                <p class="text-gray-800 text-sm font-medium">${defect.description}</p>
+                            <div class="card-body">
+                                <p style="margin: 0; color: #1f2937; font-size: 0.875rem; font-weight: 500;">${defect.description}</p>
                                 
-                                <div class="flex items-center justify-between border-t border-gray-100 pt-3">
-                                    <div class="flex flex-col text-[11px] text-gray-500">
+                                <div class="card-footer">
+                                    <div class="meta-text">
                                         <span>📍 ${defect.location}</span>
-                                        <span>${new Date(defect.created_at).toLocaleDateString()} ${new Date(defect.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                    </div>
-                                    
-                                    <!-- Status Changer Dropdown for Engineers -->
-                                    <div>
-                                        <select onchange="updateStatus('${defect.id}', this.value)" class="text-xs bg-gray-50 border border-gray-300 text-gray-700 py-1 px-2 rounded focus:outline-none focus:ring-1 focus:ring-red-500">
-                                            <option value="Pending" ${defect.status === 'Pending' ? 'selected' : ''}>Set: Pending</option>
-                                            <option value="In Progress" ${defect.status === 'In Progress' ? 'selected' : ''}>Set: In Progress</option>
-                                            <option value="Resolved" ${defect.status === 'Resolved' ? 'selected' : ''}>Set: Resolved</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (err) {
