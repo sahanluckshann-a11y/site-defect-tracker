@@ -18,7 +18,7 @@
         .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 12px; }
         button[type="submit"] { width: 100%; background-color: #dc2626; color: white; padding: 10px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-top: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         button[type="submit"]:disabled { background-color: #f87171; }
-        .card { background-color: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-col: column; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card { background-color: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card img { width: 100%; height: 192px; object-fit: cover; background-color: #f3f4f6; border: none; display: block; }
         .card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; }
         .badge { position: absolute; top: 12px; right: 12px; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 5; }
@@ -28,6 +28,7 @@
         .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f3f4f6; padding-top: 12px; }
         .meta-text { display: flex; flex-direction: column; font-size: 11px; color: #6b7280; }
         .status-select { font-size: 0.75rem; background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 4px 8px; border-radius: 4px; }
+        .error-log { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 0.75rem; margin-top: 10px; display: none; word-break: break-all; }
     </style>
     <!-- GLOBAL PRODUCTION BACKEND: Clean JS delivery channel -->
     <script src="https://unpkg.com"></script>
@@ -70,6 +71,8 @@
                 </div>
 
                 <button type="submit" id="submitBtn">Submit Defect</button>
+                <!-- Physical Error Terminal Window -->
+                <div id="errorTerminal" class="error-log"></div>
             </form>
         </section>
 
@@ -85,16 +88,30 @@
     </main>
 
     <script>
-        // Initialize Supabase (Replace with your actual keys)
-        const SUPABASE_URL = 'https://lsamqbrmuwzzrmxbnblz.supabase.co/rest/v1/';
+        // ==========================================
+        // ⚠️ EDIT ONLY THESE TWO LINES BELOW
+        // ==========================================
+        const SUPABASE_URL = 'https://lsamqbrmuwzzrmxbnblz.supabase.co/rest/v1/'; 
         const SUPABASE_KEY = 'sb_publishable_UHtKtwKM73rVEvqnWU7Ejg_6H4Hz_sl';
-        
-        // FIXED DECLARATION: Prevents web browsers from crashing on submit
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // ==========================================
 
         const form = document.getElementById('defectForm');
         const locationInput = document.getElementById('locationInput');
         const defectList = document.getElementById('defectList');
+        const errorTerminal = document.getElementById('errorTerminal');
+
+        let supabaseClient;
+        
+        // Safe Initialization Wrap
+        try {
+            if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_SUPABASE_URL')) {
+                throw new Error("Missing/Default URL detected. Please paste your actual Supabase Project URL.");
+            }
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (initError) {
+            errorTerminal.style.display = "block";
+            errorTerminal.innerText = "Initialization Error: " + initError.message;
+        }
 
         function getBadgeStyle(status) {
             if (status === 'In Progress') return 'badge-progress';
@@ -104,27 +121,52 @@
 
         // 1. Submit data (Image upload + Form row insertion)
         form.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Prevents the browser from instantly reloading the page!
+            // Absolute browser event blocks to prevent screen refreshing on click
+            e.preventDefault();
+            e.stopPropagation();
+            
+            errorTerminal.style.display = "none";
+            errorTerminal.innerText = "";
+
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.innerText = "Uploading...";
 
-            const file = document.getElementById('imageInput').files[0];
+            const fileInput = document.getElementById('imageInput');
+            const file = fileInput.files[0];
             const description = document.getElementById('descriptionInput').value;
             const status = document.getElementById('statusInput').value;
             const location = locationInput.value;
 
-            try {
-                // Upload Image to Supabase Bucket
-                const fileName = `${Date.now()}_${file.name}`;
-                const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                    .from('defect-images')
-                    .upload(fileName, file);
+            if (!supabaseClient) {
+                errorTerminal.style.display = "block";
+                errorTerminal.innerText = "Submit Blocked: Supabase client is not initialized. Verify your keys.";
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Defect";
+                return;
+            }
 
-                if (uploadError) throw uploadError;
+            try {
+                if (!file) throw new Error("Please select or capture an image first.");
+
+                // Upload Image to Supabase Bucket (Supports both 'defect-images' and 'Defect images')
+                const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+                
+                // Try lowercase first, fallback if user kept default name style
+                let uploadResult = await supabaseClient.storage.from('defect-images').upload(fileName, file);
+                
+                if (uploadResult.error) {
+                    console.log("Retrying with alternate bucket name...");
+                    uploadResult = await supabaseClient.storage.from('Defect images').upload(fileName, file);
+                }
+
+                if (uploadResult.error) throw new Error("Image Upload Failed: " + uploadResult.error.message);
 
                 // Get Public Image URL
-                const { data: urlData } = supabaseClient.storage.from('defect-images').getPublicUrl(fileName);
+                let urlData = supabaseClient.storage.from('defect-images').getPublicUrl(fileName).data;
+                if (!urlData || !urlData.publicUrl || urlData.publicUrl.includes('undefined')) {
+                    urlData = supabaseClient.storage.from('Defect images').getPublicUrl(fileName).data;
+                }
                 const imageUrl = urlData.publicUrl;
 
                 // Insert Log Row into Database
@@ -132,59 +174,9 @@
                     .from('defects')
                     .insert([{ description, location, image_url: imageUrl, status }]);
 
-                if (insertError) throw insertError;
+                if (insertError) throw new Error("Database Save Failed: " + insertError.message);
 
                 form.reset();
                 alert("Defect logged successfully!");
+                loadDefects();
             } catch (err) {
-                console.error(err);
-                alert("Error saving data: " + err.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Submit Defect";
-            }
-        });
-
-        // 2. Update Status Function
-        async function updateStatus(id, newStatus) {
-            const { error } = await supabaseClient
-                .from('defects')
-                .update({ status: newStatus })
-                .eq('id', id);
-            
-            if (error) {
-                alert("Failed to update status: " + error.message);
-            }
-        }
-
-        // 3. Fetch and Render Defects List
-        async function loadDefects() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('defects')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-                
-                if (!data || data.length === 0) {
-                    defectList.innerHTML = `<p style="text-align: center; color: #6b7280; font-size: 0.875rem; padding: 16px 0;">No defects logged yet. Site is clear!</p>`;
-                    return;
-                }
-
-                defectList.innerHTML = data.map(defect => {
-                    const badgeClass = getBadgeStyle(defect.status);
-                    return `
-                        <div class="card" style="position: relative;">
-                            <div>
-                                <span class="badge ${badgeClass}">
-                                    ${defect.status}
-                                </span>
-                                <img src="${defect.image_url}" alt="Defect">
-                            </div>
-                            <div class="card-body">
-                                <p style="margin: 0; color: #1f2937; font-size: 0.875rem; font-weight: 500;">${defect.description}</p>
-                                
-                                <div class="card-footer">
-                                    <div class="meta-text">
-                                        <span>📍 ${defect.location}</span>
