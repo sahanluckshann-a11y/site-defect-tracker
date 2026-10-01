@@ -41,6 +41,10 @@
         .login-box input { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; box-sizing: border-box; }
         .login-box button { background-color: #1f2937; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
         .hidden { display: none !important; }
+        .print-row { display: flex; gap: 10px; align-items: flex-end; }
+        .print-row > div { flex: 1; }
+        .secondary-btn { width: 100%; background-color: #1f2937; color: white; padding: 10px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .secondary-btn:disabled { background-color: #6b7280; cursor: not-allowed; }
     </style>
     <!-- Supabase JS library (this is the line that was broken before) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -102,6 +106,19 @@
                 <p class="empty">Loading live dashboard feed...</p>
             </div>
         </section>
+
+        <section>
+            <h2>🖨️ Print Daily Report</h2>
+            <div class="print-row">
+                <div>
+                    <label for="printDateInput">Date</label>
+                    <input type="date" id="printDateInput">
+                </div>
+                <div style="flex: 0 0 auto;">
+                    <button type="button" id="printBtn" class="secondary-btn">Print</button>
+                </div>
+            </div>
+        </section>
     </main>
 
     <script>
@@ -124,6 +141,8 @@
         const logoutBtn = document.getElementById('logoutBtn');
         const loginBox = document.getElementById('loginBox');
         const loginBtn = document.getElementById('loginBtn');
+        const printDateInput = document.getElementById('printDateInput');
+        const printBtn = document.getElementById('printBtn');
 
         let isLoggedIn = false;
 
@@ -344,6 +363,94 @@
         defectList.addEventListener('click', function (e) {
             const btn = e.target.closest('.delete-btn');
             if (btn) deleteDefect(btn.dataset.id, btn.dataset.url, btn);
+        });
+
+        // ---- Print a single day's defects ----
+        function todayLocalString() {
+            const d = new Date();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return d.getFullYear() + '-' + mm + '-' + dd;
+        }
+        printDateInput.value = todayLocalString();
+
+        printBtn.addEventListener('click', async function () {
+            clearError();
+            const dateStr = printDateInput.value;
+            if (!dateStr) { alert('Choose a date first.'); return; }
+
+            printBtn.disabled = true;
+            printBtn.innerText = 'Preparing...';
+            try {
+                const dayStart = new Date(dateStr + 'T00:00:00');
+                const dayEnd = new Date(dayStart);
+                dayEnd.setDate(dayEnd.getDate() + 1);
+
+                const { data, error } = await supabaseClient
+                    .from(TABLE_NAME)
+                    .select('*')
+                    .gte('created_at', dayStart.toISOString())
+                    .lt('created_at', dayEnd.toISOString())
+                    .order('created_at', { ascending: true });
+
+                if (error) throw new Error('Report Error: ' + error.message);
+
+                const rows = data || [];
+                const niceDate = dayStart.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                const bodyHtml = rows.length === 0
+                    ? '<p style="text-align:center;color:#6b7280;">No defects were logged on this date.</p>'
+                    : rows.map(function (d, i) {
+                        const status = d.status || 'Pending';
+                        const time = d.created_at ? new Date(d.created_at).toLocaleTimeString() : '';
+                        const img = d.image_url ? '<img src="' + escapeHtml(d.image_url) + '">' : '';
+                        return '' +
+                            '<div class="entry">' +
+                                '<div class="entry-num">#' + (i + 1) + '</div>' +
+                                img +
+                                '<div class="entry-details">' +
+                                    '<p><strong>Description:</strong> ' + escapeHtml(d.description) + '</p>' +
+                                    '<p><strong>Location:</strong> ' + escapeHtml(d.location) + '</p>' +
+                                    '<p><strong>Status:</strong> ' + escapeHtml(status) + '</p>' +
+                                    (time ? '<p><strong>Time logged:</strong> ' + escapeHtml(time) + '</p>' : '') +
+                                '</div>' +
+                            '</div>';
+                    }).join('');
+
+                const printHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Defect Report - ' + escapeHtml(niceDate) + '</title>' +
+                    '<style>' +
+                    'body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px;}' +
+                    'h1{font-size:1.3rem;margin-bottom:0;}' +
+                    '.subtitle{color:#555;margin-top:4px;margin-bottom:20px;}' +
+                    '.entry{display:flex;gap:16px;border:1px solid #ccc;border-radius:8px;padding:12px;margin-bottom:14px;page-break-inside:avoid;}' +
+                    '.entry-num{font-weight:bold;color:#dc2626;flex:0 0 30px;}' +
+                    '.entry img{width:140px;height:110px;object-fit:cover;border-radius:4px;flex:0 0 140px;}' +
+                    '.entry-details p{margin:2px 0;font-size:0.9rem;}' +
+                    '@media print{ body{margin:10mm;} }' +
+                    '</style></head><body>' +
+                    '<h1>🏗️ Site Defect Report</h1>' +
+                    '<p class="subtitle">' + escapeHtml(niceDate) + ' — ' + rows.length + ' defect(s) logged</p>' +
+                    bodyHtml +
+                    '</body></html>';
+
+                const printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    throw new Error('Report Error: your browser blocked the print window. Please allow pop-ups for this site.');
+                }
+                printWindow.document.open();
+                printWindow.document.write(printHtml);
+                printWindow.document.close();
+                printWindow.onload = function () {
+                    printWindow.focus();
+                    printWindow.print();
+                };
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+            } finally {
+                printBtn.disabled = false;
+                printBtn.innerText = 'Print';
+            }
         });
 
         // ---- Load and draw the dashboard ----
